@@ -71,7 +71,7 @@ void run_hybrid_benchmark(VecSimIndex *index, size_t max_id, size_t d, std::mt19
       KNNVectorQuery top_k_query = {.vector = NULL, .vecLen = d, .k = k, .order = BY_SCORE};
       VecSimQueryParams queryParams;
       IndexIterator *hybridIt =
-          NewHybridVectorIterator(index, (char *)"__v_score", top_k_query, queryParams, ui);
+          NewHybridVectorIterator(index, (char *)"__v_score", top_k_query, d, VecSimType_FLOAT32, VecSimMetric_L2, queryParams, ui);
 
       // Run in batches mode.
       HybridIterator *hr = (HybridIterator *)hybridIt->ctx;
