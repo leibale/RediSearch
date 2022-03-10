@@ -127,9 +127,16 @@ void computeDistances(HybridIterator *hr) {
   RSIndexResult *cur_res = hr->base.current;
   RSIndexResult *cur_child_res;  // This will use the memory of hr->child->current.
   RSIndexResult *cur_vec_res = NewDistanceResult();
+  void *qvector = hr->query.vector;
+
+  if (hr->indexMetric == VecSimMetric_Cosine) {
+    qvector = rm_malloc(hr->dimention * VecSimType_sizeof(hr->vecType));
+    memcpy(qvector, hr->query.vector, hr->dimention * VecSimType_sizeof(hr->vecType));
+    VecSim_Normalize(qvector, hr->dimention, hr->vecType);
+  }
 
   while (hr->child->Read(hr->child->ctx, &cur_child_res) != INDEXREAD_EOF) {
-    float dist = (float)VecSimIndex_GetDistanceFrom(hr->index, cur_child_res->docId, hr->query.vector);
+    float dist = (float)VecSimIndex_GetDistanceFrom(hr->index, cur_child_res->docId, qvector);
     // If this id is not in the vector index (since it was deleted), dist will return as NaN.
     if (isnanf(dist)) {
       continue;
@@ -141,6 +148,9 @@ void computeDistances(HybridIterator *hr) {
       cur_vec_res->dist.scoreField = hr->scoreField;
       insertResultToHeap(hr, cur_res, cur_child_res, cur_vec_res, &upper_bound);
     }
+  }
+  if (qvector != hr->query.vector) {
+    rm_free(qvector);
   }
   IndexResult_Free(cur_vec_res);
 }
@@ -308,13 +318,16 @@ void HybridIterator_Free(struct indexIterator *self) {
   rm_free(it);
 }
 
-IndexIterator *NewHybridVectorIterator(VecSimIndex *index, char *score_field, KNNVectorQuery query, VecSimQueryParams qParams, IndexIterator *child_it) {
+IndexIterator *NewHybridVectorIterator(VecSimIndex *index, char *score_field, KNNVectorQuery query, size_t dim, VecSimType type, VecSimMetric metric, VecSimQueryParams qParams, IndexIterator *child_it) {
   HybridIterator *hi = rm_new(HybridIterator);
   hi->lastDocId = 0;
   hi->child = child_it;
   hi->resultsPrepared = false;
   hi->index = index;
   hi->query = query;
+  hi->dimention = dim;
+  hi->vecType = type;
+  hi->indexMetric = metric;
   hi->runtimeParams = qParams;
   hi->scoreField = score_field;
   hi->base.isValid = 1;
