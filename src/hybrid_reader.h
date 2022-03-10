@@ -18,7 +18,7 @@ typedef struct {
   IndexIterator base;
   VecSimIndex *index;
   KNNVectorQuery query;
-  size_t dimention;                // index dimention
+  size_t dimension;                // index dimension
   VecSimType vecType;              // index data type
   VecSimMetric indexMetric;        // index distance metric
   VecSimQueryParams runtimeParams; // Evaluated runtime params.
